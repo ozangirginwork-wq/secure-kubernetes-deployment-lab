@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: secure-web
+  namespace: secure-app
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: secure-web
+
+  template:
+    metadata:
+      labels:
+        app: secure-web
+
+    spec:
+      containers:
+        - name: web
+          image: nginx:alpine
