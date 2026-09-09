@@ -1,28 +1,27 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
-
 metadata:
   name: secure-web-reader
   namespace: secure-app
-
 rules:
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "list"]
-
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - get
+  resourceNames:
+  - secure-web-config
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
-
 metadata:
   name: secure-web-reader-binding
   namespace: secure-app
-
 subjects:
-  - kind: ServiceAccount
-    name: secure-web-sa
-    namespace: secure-app
-
+- kind: ServiceAccount
+  name: secure-web-sa
+  namespace: secure-app
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

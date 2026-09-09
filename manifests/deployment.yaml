@@ -1,71 +1,77 @@
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
   name: secure-web
   namespace: secure-app
-
 spec:
   replicas: 3
-
   selector:
     matchLabels:
       app: secure-web
-
   template:
     metadata:
       labels:
         app: secure-web
-
     spec:
       serviceAccountName: secure-web-sa
       automountServiceAccountToken: false
-      
-
       containers:
-        - name: web
-          image: nginxinc/nginx-unprivileged:alpine
-
-          resources:
-            requests:
-              cpu: "50m"
-              memory: "32Mi"
-            limits:
-              cpu: "200m"
-              memory: "128Mi"
-
-          envFrom:
-            - configMapRef:
-                name: secure-web-config
-            - secretRef:
-                name: secure-web-secret
-
-          securityContext:
-            runAsNonRoot: true
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 3
-            periodSeconds: 5
-
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
-          volumeMounts:
-            - name: nginx-tmp
-              mountPath: /tmp
-
-      volumes:
+      - name: web
+        image: nginxinc/nginx-unprivileged:1.28.0-alpine
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+            ephemeral-storage: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+            ephemeral-storage: 128Mi
+        envFrom:
+        - configMapRef:
+            name: secure-web-config
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
         - name: nginx-tmp
-          emptyDir: {}
+          mountPath: /tmp
+        - name: demo-secret
+          mountPath: /etc/demo-secret
+          readOnly: true
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+      volumes:
+      - name: nginx-tmp
+        emptyDir:
+          sizeLimit: 32Mi
+      - name: demo-secret
+        secret:
+          secretName: secure-web-secret
+          defaultMode: 288
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+  revisionHistoryLimit: 3

@@ -1,26 +1,62 @@
-name: Kubernetes Security Scan
-
+name: Kubernetes Security and Validation
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
+  workflow_dispatch:
 permissions:
   contents: read
-
+concurrency:
+  group: lab7-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   checkov:
-    name: Checkov Kubernetes Scan
-    runs-on: ubuntu-latest
-
+    name: Manifest validation and Checkov
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Checkov
-        uses: bridgecrewio/checkov-action@v12
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          directory: manifests
-          framework: kubernetes
-          soft_fail: true
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-ci.txt
+      - run: python scripts/validate_manifests.py
+      - name: Checkov (only documented exceptions may be non-blocking)
+        run: checkov -d manifests --framework kubernetes --skip-download --soft-fail-on CKV_K8S_40,CKV_K8S_43
+  integration:
+    name: Disposable kind cluster tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install kind
+        run: |
+          curl -fsSLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64
+          curl -fsSLo /tmp/kind.sha256sum https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64.sha256sum
+          cd /tmp
+          expected=$(awk '{print $1}' kind.sha256sum)
+          echo "$expected  kind" | sha256sum --check
+          sudo install kind /usr/local/bin/kind
+      - name: Create local cluster and enable NetworkPolicy enforcement
+        run: |
+          kind create cluster --name lab7-secure-k8s --config kind-config.yaml --image kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a
+          kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.0/manifests/calico.yaml
+          kubectl rollout status daemonset/calico-node -n kube-system --timeout=240s
+          kubectl rollout status deployment/calico-kube-controllers -n kube-system --timeout=180s
+          kubectl wait --for=condition=Ready nodes --all --timeout=180s
+      - name: Validate deployment, RBAC, NetworkPolicy and self-healing
+        run: bash scripts/test_cluster.sh
+      - name: Diagnostics on failure (no Secret or environment dumps)
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide || true
+          kubectl get events -n secure-app --sort-by=.lastTimestamp || true
+          kubectl logs -n secure-app deployment/secure-web --tail=30 || true
+      - name: Delete disposable cluster
+        if: always()
+        run: kind delete cluster --name lab7-secure-k8s
