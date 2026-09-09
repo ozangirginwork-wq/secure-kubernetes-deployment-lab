@@ -15,6 +15,8 @@ They show the lab's development history, not an assertion that every screenshot 
 
 ## Current execution evidence
 
+[Verified runtime log excerpt](ci-validation.md) records the first successful full CI run, including all three Ready nodes.
+
 Use [GitHub Actions](https://github.com/ozangirginwork-wq/secure-kubernetes-deployment-lab/actions/workflows/security-scan.yml) for commit-specific static and runtime results. Successful integration logs contain three-node readiness, server-side validation, RBAC allow/deny, NetworkPolicy allow/block/allow and Pod UID replacement assertions. A workflow definition alone is not proof that those tests passed: inspect the run conclusion and steps.
 
 No original screenshot of all three nodes in a single `kubectl get nodes` view, the CNI installation, or a completed GitHub Actions run was found among the reviewed original captures. Those were not fabricated. The current CI provides fresh node/runtime evidence when it succeeds. A standalone nginx-browser screenshot was not selected because the successful HTTP response is already visible in the policy test.

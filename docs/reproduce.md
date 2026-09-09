@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Use Docker with Linux containers, Git, kubectl compatible with Kubernetes 1.34 and kind v0.30.0. On Windows, start Docker Desktop before running PowerShell. Check `docker info`, `kubectl version --client` and `kind version`. Python 3.12 is optional for local static checks. The CI workflow records the exact kind node digest.
+Use Docker with Linux containers, Git, kubectl compatible with Kubernetes 1.34 and kind v0.30.0. On Windows, start Docker Desktop before running PowerShell. Check `docker info`, `kubectl version --client` and `kind version`. Python 3.12 is optional for local static checks. The CI workflow records the exact kind node digest. The nginx digest was resolved and successfully run on the Linux amd64 CI runner; the user's Intel/AMD Windows machine is the primary local target. Other architectures are not verified by this lab.
 
 These commands create only a local disposable cluster. They do not use AWS. Downloads require internet access. Images and tooling are versioned for the lab; review newer security patches before adapting anything beyond a disposable exercise.
 
@@ -114,10 +114,10 @@ python scripts/validate_manifests.py
 checkov -d manifests --framework kubernetes --skip-download
 ```
 
-The raw Checkov command exits nonzero for the two documented findings. To apply the same exception policy as CI:
+The raw Checkov command exits nonzero for the documented UID finding. To apply the same exception policy as CI:
 
 ```powershell
-checkov -d manifests --framework kubernetes --skip-download --soft-fail-on CKV_K8S_40,CKV_K8S_43
+checkov -d manifests --framework kubernetes --skip-download --soft-fail-on CKV_K8S_40
 ```
 
 On Linux or WSL with Docker/kubectl access and the same context, run `bash scripts/test_cluster.sh`. This applies the app, tests RBAC, NetworkPolicy and reconciliation, and removes the temporary client. It deliberately refuses other context names.

@@ -30,29 +30,28 @@ The namespace is a logical boundary across the workers; it is not a separate mac
 
 ```mermaid
 flowchart TD
-    Dev[Developer] --> Git[GitHub repository]
-    Git --> CI[GitHub Actions]
-    CI --> Scan[Manifest validation and Checkov]
+    Dev[Developer and GitHub] --> CI[GitHub Actions]
+    CI --> Scan[Manifest checks and Checkov]
     CI --> Test[Disposable cluster tests]
     Dev -->|kubectl apply| CP
     subgraph Cluster[Local kind cluster on Docker]
-        CP[Control plane] --> Workers[Two worker nodes]
-        Calico[Calico policy enforcement] --> Workers
-        subgraph NS[secure-app namespace]
-            Deploy[Deployment] --> RS[ReplicaSet]
-            RS --> Pods[Three Pods]
-            Pods --> Nginx[Hardened nginx containers]
-            SA[ServiceAccount and limited RBAC] -.-> Pods
-            Config[ConfigMap and fake Secret] -.-> Nginx
-            Controls[Probes and resource controls] -.-> Nginx
-            NP[Ingress NetworkPolicy] -.-> Pods
-            Svc[ClusterIP Service] -->|ready EndpointSlice backends| Pods
-        end
-        Workers -.-> Pods
-        CP -.-> Deploy
+        CP[One control plane] --> Workers[Two workers]
+        Workers --> NS[secure-app namespace workloads]
     end
     Test -.-> Cluster
-    Client[Client with access=allowed] --> Svc
+```
+
+**Inside `secure-app`:** Calico enforces the ingress policy on the worker nodes. The table below explains each supporting control.
+
+```mermaid
+flowchart TD
+    Deployment --> ReplicaSet --> Pods[Three Pods]
+    Service[ClusterIP Service] -->|EndpointSlice backends| Pods
+    Policy[Ingress NetworkPolicy] -.-> Pods
+    Identity[ServiceAccount and RBAC] -.-> Pods
+    Pods --> Nginx[Hardened nginx containers]
+    Config[ConfigMap and fake Secret file] -.-> Nginx
+    Runtime[Probes and resource controls] -.-> Nginx
 ```
 
 GitHub Actions validates code and creates its own disposable kind cluster. It does not deploy to the developer's computer. Calico is explicitly installed in the reproduction path; the original screenshots do not establish which policy provider was installed during the first session.
@@ -108,7 +107,7 @@ The workflow has two jobs:
 1. **Static validation:** reject duplicate YAML keys/resources, missing namespace objects, selector/reference mistakes and any change to the explicitly fake Secret. Run pinned Checkov against `manifests/`.
 2. **Integration:** create a disposable three-node kind cluster, install Calico, perform server-side dry-run, deploy, test RBAC, verify the Secret mount/token absence, exercise NetworkPolicy and delete/recreate a Pod. Delete the cluster even after failures.
 
-Checkov currently reports **103 passed, 2 failed, 0 skipped** with version **3.2.495**. The two findings remain visible: `CKV_K8S_40` (UID 101) and `CKV_K8S_43` (tag rather than digest). Only these documented findings are non-blocking; other security failures fail CI. A green badge means the configured gate passed, not that every Checkov finding disappeared.
+Checkov currently reports **104 passed, 1 failed, 0 skipped** with version **3.2.495**. The remaining finding stays visible: `CKV_K8S_40` (the image's standard UID 101). Only this documented finding is non-blocking; other security failures fail CI. A green badge means the configured gate passed, not that every Checkov finding disappeared.
 
 The initial repository scan had 24 failures, including an old Deployment accidentally saved as `namespace.yaml`. Fixing that file also removes a duplicate scanned Deployment, so the before/after check totals are **not a like-for-like security score**. [Review the exceptions, scope and changes](docs/security-review.md).
 

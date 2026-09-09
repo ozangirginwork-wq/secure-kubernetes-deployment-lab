@@ -14,7 +14,7 @@
 
 `namespace.yaml` contained a second Deployment rather than a Namespace. Its Pod template used standard nginx without the hardening in `deployment.yaml`. Applying the folder could update the same Deployment twice and leave an incorrect template; a fresh cluster also lacked the namespace. It now declares the real Namespace, and static validation rejects duplicate resource identities.
 
-CI used global `soft_fail: true`. That allowed a green check even with 24 failures. It now keeps only the two explained findings non-blocking and adds live deployment/policy tests. The original scan screenshot is labeled as a before-review result.
+CI used global `soft_fail: true`. That allowed a green check even with 24 failures. It now keeps only the explained UID finding non-blocking and adds live deployment/policy tests. The original scan screenshot is labeled as a before-review result.
 
 The committed kind config did not establish a NetworkPolicy provider. The reproduction config now disables the default CNI and installs versioned Calico. This is a fresh-cluster recipe, not evidence that the original session used Calico.
 
