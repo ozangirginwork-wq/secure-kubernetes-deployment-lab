@@ -152,3 +152,12 @@ Follow the [PowerShell reproduction guide](docs/reproduce.md) to create the clus
 - [Kubernetes NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
 - [Unprivileged nginx image](https://github.com/nginx/docker-nginx-unprivileged)
 - [Checkov](https://www.checkov.io/)
+
+## Related portfolio labs
+
+- [Lab 1: Linux support & troubleshooting](https://github.com/ozangirginwork-wq/linux-it-support-troubleshooting-lab)
+- [Lab 2: Windows Server & Active Directory](https://github.com/ozangirginwork-wq/windows-server-active-directory-lab)
+- [Lab 3: Python IT automation](https://github.com/ozangirginwork-wq/python-it-cloud-automation-lab)
+- [Lab 4: AWS security incident investigation](https://github.com/ozangirginwork-wq/aws-security-incident-response-lab)
+- [Lab 5: Secure Terraform & CI security](https://github.com/ozangirginwork-wq/terraform-cicd-pipeline)
+- [Lab 6: AWS automated incident response](https://github.com/ozangirginwork-wq/aws-security-automated-incident-response)
